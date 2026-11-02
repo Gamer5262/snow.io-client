@@ -2,7 +2,7 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 
-const PROJECTILE_RADIUS = 0.8;
+export const PROJECTILE_RADIUS = 0.35;
 
 export default function Projectile({
  position = [0, 0, 0],
@@ -26,14 +26,13 @@ export default function Projectile({
  });
 
  return (
-   <mesh ref={meshRef} position={currentPosition} castShadow receiveShadow>
+   <mesh ref={meshRef} position={currentPosition}>
      <sphereGeometry args={[PROJECTILE_RADIUS, 16, 16]} />
      <meshStandardMaterial
-       color="#ff0000"
-       emissive="#ff0000"
-       emissiveIntensity={1.5}
-       metalness={0.1}
-       roughness={0.4}
+       color="#DCEEFF"
+       emissive="#8EBFE0"
+       emissiveIntensity={0.2}
+       roughness={0.65}
      />
    </mesh>
  );

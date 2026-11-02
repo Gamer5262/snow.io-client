@@ -3,7 +3,7 @@ import { useState, useEffect, useContext } from 'react';
 import { InputContext } from './InputContext';
 
 export function useInputProvider(ref) {
-  const [input, setInput] = useState({ forward: 0, right: 0, mouseClick: false });
+  const [input, setInput] = useState({ forward: 0, right: 0, mouseClick: false, shootCount: 0 });
 
   useEffect(() => {
     const target = ref?.current || window;
@@ -31,11 +31,15 @@ export function useInputProvider(ref) {
     };
 
     const handleMouseDown = (e) => {
-      if (e.button === 0) setInput((prev) => ({ ...prev, mouseClick: true }));
+      if (e.button === 0) {
+        setInput((prev) => ({ ...prev, mouseClick: true, shootCount: prev.shootCount + 1 }));
+      }
     };
 
     const handleMouseUp = (e) => {
-      if (e.button === 0) setInput((prev) => ({ ...prev, mouseClick: false }));
+      if (e.button === 0) {
+        setInput((prev) => ({ ...prev, mouseClick: false }));
+      }
     };
 
     target.addEventListener('mousedown', handleMouseDown);

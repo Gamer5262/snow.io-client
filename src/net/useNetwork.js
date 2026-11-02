@@ -5,6 +5,7 @@ export function useNetwork() {
   const { room } = useGame();
   const [players, setPlayers] = useState({});
   const [projectiles, setProjectiles] = useState({});
+  const [decals, setDecals] = useState({});
 
   const initializePlayers = useCallback(() => {
     if (room) {
@@ -103,6 +104,26 @@ export function useNetwork() {
     };
   }, [room, initializeProjectiles]);
 
+  useEffect(() => {
+    if (!room || !room.state.decals) return;
+    const decalsMap = room.state.decals;
+    const onAddDisposer = decalsMap.onAdd?.((decal, id) => {
+      setDecals((current) => ({ ...current, [id]: decal }));
+    });
+    const onRemoveDisposer = decalsMap.onRemove?.((decal, id) => {
+      setDecals((current) => {
+        const copy = { ...current };
+        delete copy[id];
+        return copy;
+      });
+    });
+    setDecals(Object.fromEntries(decalsMap.entries()));
+    return () => {
+      onAddDisposer?.();
+      onRemoveDisposer?.();
+    };
+  }, [room]);
+
   const sendInput = useCallback(
     (forward, right, rotY) => {
       if (room) {
@@ -120,5 +141,5 @@ export function useNetwork() {
     room?.send("jump");
   }, [room]);
 
-  return { players, projectiles, sendInput, sendJump };
+  return { players, projectiles, decals, sendInput, sendJump };
 }

@@ -6,6 +6,8 @@ import { useNetwork } from '../net/useNetwork';
 import Ground from '../world/Ground';
 import ShootController from '../input/ShootController';
 import Projectile from '../entities/Projectile';
+import SnowballDecal from '../entities/SnowballDecal';
+import Sky from '../world/Sky';
 import { useGame } from './GameContext';
 import { SNOWMAN_BASE_Y } from '../config/constants';
 
@@ -20,7 +22,7 @@ function colorForPlayer(sessionId) {
 }
 
 export default function Scene() {
-  const { players, projectiles } = useNetwork();
+  const { players, projectiles, decals } = useNetwork();
   const { sessionId } = useGame();
 
   // 1. REMOVED: cameraContextValue = useRef({ camera: null });
@@ -35,13 +37,14 @@ export default function Scene() {
     <>
       {/* FPS Camera - follows player's position and automatically updates the shared context */}
       <FPSCamera playerPosition={playerPos} />
+      <Sky />
 
       {/* Shooting controller */}
       <ShootController />
 
       {/* Lights - increased intensity */}
       <ambientLight intensity={0.8} />
-      <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow />
+      <directionalLight position={[5, 10, 5]} intensity={1.2} />
 
       <Walls />
       <Ground />
@@ -60,13 +63,18 @@ export default function Scene() {
       })}
 
       {/* Projectiles */}
-      {Object.entries(projectiles).map(([id, projectile]) => (
+      {Object.entries(projectiles).filter(([, projectile]) => projectile.playerId !== sessionId).map(([id, projectile]) => (
         <Projectile
           key={id}
           id={id}
           position={[projectile.x, projectile.y, projectile.z]}
           velocity={[projectile.vx, projectile.vy, projectile.vz]}
         />
+      ))}
+
+      {/* Snow marks left where snowballs hit */}
+      {Object.entries(decals).map(([id, decal]) => (
+        <SnowballDecal key={id} decal={decal} />
       ))}
     </>
   );

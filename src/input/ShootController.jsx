@@ -1,66 +1,62 @@
 // src/input/ShootController.jsx
-import { useContext, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useInput } from '../hooks/useInput';
 import { GameContext } from '../game/GameContext';
 import { useCameraRef } from '../camera/CameraContext';
+import { useNetwork } from '../net/useNetwork';
+import LocalProjectile from '../entities/LocalProjectile';
 import { Vector2, Raycaster, Vector3 } from 'three';
-import { SNOWMAN_HEAD_HEIGHT } from '../config/constants';
 
 const SNOWBALL_SPEED = 50;
-const SNOWBALL_SPAWN_OFFSET = 0.5;
+// Keep the camera outside the snowball so its near surface doesn't fill the view.
+const SNOWBALL_SPAWN_OFFSET = 1.3;
 const SHOT_COOLDOWN_MS = 250;
 
 export default function ShootController() {
-  const { mouseClick } = useInput();
+  const { shootCount } = useInput();
   const { room, sessionId } = useContext(GameContext);
+  const { players } = useNetwork();
+  const [localShots, setLocalShots] = useState([]);
   const cameraContext = useCameraRef();
-  const lastShotRef = useRef(false);
   const lastShotTimeRef = useRef(0);
+  const handledShotCount = useRef(0);
 
-  useFrame(() => {
-    if (mouseClick && !lastShotRef.current) {
-      lastShotRef.current = true;
+  useEffect(() => {
+    if (!shootCount || shootCount === handledShotCount.current) return;
+    handledShotCount.current = shootCount;
+    if (!room || !cameraContext?.camera) return;
 
-      if (!room || !cameraContext) {
-        return;
-      }
+    const now = Date.now();
+    if (now - lastShotTimeRef.current < SHOT_COOLDOWN_MS) return;
 
-      const camera = cameraContext.camera;
-      if (!camera) {
-        return;
-      }
+    const camera = cameraContext.camera;
+    const raycaster = new Raycaster();
+    raycaster.setFromCamera(new Vector2(0, 0), camera);
+    const direction = raycaster.ray.direction.clone();
+    const spawnPosition = camera.position.clone().addScaledVector(direction, SNOWBALL_SPAWN_OFFSET);
+    const velocity = direction.multiplyScalar(SNOWBALL_SPEED);
+    const shot = {
+      id: `${now}-${Math.random()}`,
+      position: [spawnPosition.x, spawnPosition.y, spawnPosition.z],
+      velocity: [velocity.x, velocity.y, velocity.z],
+    };
 
-      const now = Date.now();
-      if (now - lastShotTimeRef.current < SHOT_COOLDOWN_MS) {
-        return;
-      }
+    setLocalShots((shots) => [...shots, shot]);
+    room.send('shoot', { ...shot, timestamp: now });
+    lastShotTimeRef.current = now;
+  }, [shootCount, room, cameraContext]);
 
-      const raycaster = new Raycaster();
-      const screenCenter = new Vector2(0, 0);
-      raycaster.setFromCamera(screenCenter, camera);
+  const removeShot = useCallback((shotId) => {
+    setLocalShots((shots) => shots.filter((shot) => shot.id !== shotId));
+  }, []);
 
-      const direction = raycaster.ray.direction.clone();
-      const playerState = room.state?.players?.get?.(sessionId);
-      const playerOrigin = playerState
-        ? new Vector3(playerState.x, playerState.y + SNOWMAN_HEAD_HEIGHT, playerState.z)
-        : camera.position.clone();
-
-      const spawnPosition = playerOrigin.clone();
-      spawnPosition.addScaledVector(direction, SNOWBALL_SPAWN_OFFSET);
-      const velocity = direction.clone().multiplyScalar(SNOWBALL_SPEED);
-
-      room.send('shoot', {
-        position: [spawnPosition.x, spawnPosition.y, spawnPosition.z],
-        velocity: [velocity.x, velocity.y, velocity.z],
-        timestamp: now,
-      });
-
-      lastShotTimeRef.current = now;
-    } else if (!mouseClick && lastShotRef.current) {
-      lastShotRef.current = false;
-    }
-  });
-
-  return null;
+  return localShots.map((shot) => (
+    <LocalProjectile
+      key={shot.id}
+      shot={shot}
+      players={players}
+      sessionId={sessionId}
+      onFinished={removeShot}
+    />
+  ));
 }

@@ -26,7 +26,6 @@ export default function Game({ room }) {
             <Reticle />
             <MovementController />
             <Canvas
-              shadows
               camera={{ position: [0, 5, 10], fov: 75 }}
               style={{ width: '100%', height: '100%', display: 'block' }}
             >

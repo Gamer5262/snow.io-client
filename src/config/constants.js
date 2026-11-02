@@ -3,7 +3,7 @@
 // World dimensions
 export const WORLD_WIDTH = 100;
 export const WORLD_DEPTH = 100;
-export const WALL_HEIGHT = 15;
+export const WALL_HEIGHT = 24;
 
 // Player parameters
 export const PLAYER_SPEED = 10;
